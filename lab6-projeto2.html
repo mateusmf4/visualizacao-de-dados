@@ -35,8 +35,13 @@
       [2024, 378.2, 21, 14],
       [2025, 489.1, 27, 17]
     ];
-    // começar de 2015
+
+    let diff = data.map((x, i) => i === 0 ? 0 : x[1] - data[i - 1][1]);
+    diff = diff.slice(2);
     data = data.slice(2);
+
+    const positive = diff.map(x => x >= 0 ? x : '-');
+    const negative = diff.map(x => x < 0 ? x : '-');
     
     let option = {
       xAxis: {
@@ -45,25 +50,34 @@
       },
       yAxis: {
         type: 'value',
-        name: 'Total de chuva (mm)',
+        name: 'Diferença de chuva (mm)',
       },
       series: [
         {
-          name: "Total de chuva (mm)",
-          data: data.map(x => x[1]),
+          name: "Diferença de chuva positiva (mm)",
+          data: positive,
           type: 'bar',
-          showBackground: true,
+          stack: 'all',
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#83bff6' },
-              { offset: 1, color: '#53789E' }
-            ])
+            color: "#63a7cf"
+          },
+        },
+        {
+          name: "Diferença de chuva negativa (mm)",
+          data: negative,
+          type: 'bar',
+          stack: 'all',
+          itemStyle: {
+            color: "#577abd"
           },
         }
       ],
       tooltip: {},
+      legend: {
+        bottom: 15
+      },
       title: {
-        text: "Volume de chuva acumulada por ano (2015 a 2024) - Fazenda Carnaúba - Taperoá - PB",
+        text: "Diferença da chuva acumulada na Fazenda Carnaúba em relação ao ano anterior (entre 2015 e 2024)",
         left: "center",
       },
       dataZoom: [
