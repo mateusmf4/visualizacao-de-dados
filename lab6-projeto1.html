@@ -1,0 +1,78 @@
+<!--
+  THIS EXAMPLE WAS DOWNLOADED FROM https://echarts.apache.org/examples/en/editor.html?c=line-smooth&code=PYBwLglsB2AEC8sDeAoWsAeBBDEDOAXMmurGAJ4gCmRA5AMYCGYVA5sAE7m0A0J6AE2aMiAbVoBZGL1i0AKgFcqM2gHUqAlXIAWClQDEOEFQGVmphdFoBdEgF8-6cjnxFUpMpRqyAbowA2SrT2jrB4VEZUhLCi_MQegsJiABwATAAMPLAAnADMqVnZ6QCMhbkALFnFqUVVubmZsMX56dahHhTUdP4Q0MrtpHgAtsDAYNpEYBxKcXYktnYA3EA
+  ⚠ Please be aware that this chart is not an official demo of Apache ECharts but is made by user-generated code.
+-->
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0; padding: 50px">
+  <div id="container" style="height: calc(100% - 50px);"></div>
+
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <script type="text/javascript">
+    let myChart = echarts.init(document.getElementById('container'), null, {
+      renderer: 'canvas',
+      useDirtyRect: false
+    });
+
+    // 0    1               2                    3
+    // ano, total_chuva_mm, dias_chuva_mais_5mm, dias_chuva_mais_10mm
+    const data = [
+      [2013, 280.0, 14, 9],
+      [2014, 404.6, 18, 15],
+      [2015, 386.7, 16, 9],
+      [2016, 295.0, 17, 10],
+      [2017, 211.5, 11, 5],
+      [2018, 764.8, 28, 21],
+      [2019, 497.9, 25, 16],
+      [2020, 591.3, 19, 11],
+      [2021, 388.5, 19, 11],
+      [2022, 938.6, 37, 24],
+      [2023, 465.6, 18, 16],
+      [2024, 378.2, 21, 14],
+      [2025, 489.1, 27, 17]
+    ];
+    
+    let option = {
+      xAxis: {
+        type: 'category',
+        data: data.map(x => x[0])
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Total de chuva (mm)',
+      },
+      series: [
+        {
+          name: "Total de chuva (mm)",
+          data: data.map(x => x[1]),
+          type: 'bar',
+          showBackground: true,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: '#83bff6' },
+              { offset: 1, color: '#53789E' }
+            ])
+          },
+        }
+      ],
+      tooltip: {},
+      title: {
+        text: "Volume de chuva acumulada por ano (2015 a 2024) - Fazenda Carnaúba - Taperoá - PB",
+        left: "center",
+      },
+      dataZoom: [
+        {
+          type: 'inside'
+        }
+      ],
+    };
+    myChart.setOption(option);
+
+    window.addEventListener('resize', myChart.resize);
+  </script>
+</body>
+</html>
