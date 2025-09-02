@@ -34,11 +34,18 @@
       return arr.reduce((a, v) => (v > a ? v : a));
     }
 
+    const BILLION = 1_000_000_000;
+    const MILLION = 1_000_000;
+
     function formatDollar(x) {
       if (isNaN(x)) {
         return 'Unknown';
       }
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(x) + " bi";
+      if (x < 0.5) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(x * 1_000) + " mi";
+      } else {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(x) + " bi";
+      }
     }
 
     function normName(name) {
@@ -65,7 +72,7 @@
     }
 
     function loadMapType(type, year) {
-      const arr = dados[type][year].map(x => ({ name: normName(x.name), value: x.us_value / 1000000000 }));
+      const arr = dados[type][year].map(x => ({ name: normName(x.name), value: x.us_value / BILLION }));
       let min = arrMin(arr.map(x => x.value));
       let max = arrMax(arr.map(x => x.value));
 
@@ -159,9 +166,9 @@
       function totalYear(data) {
         return data.reduce((acc, x) => acc + x.us_value, 0);
       }
-      const exportacoes = Object.values(dados.EXP).map(y => totalYear(y) / 1000000000);
-      const importacoes = Object.values(dados.IMP).map(y => totalYear(y) / 1000000000);
-      const balanca = Object.values(dados.BAL).map(y => totalYear(y) / 1000000000);
+      const exportacoes = Object.values(dados.EXP).map(y => totalYear(y) / BILLION);
+      const importacoes = Object.values(dados.IMP).map(y => totalYear(y) / BILLION);
+      const balanca = Object.values(dados.BAL).map(y => totalYear(y) / BILLION);
 
       let option = {
         tooltip: {
