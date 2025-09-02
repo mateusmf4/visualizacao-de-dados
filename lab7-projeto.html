@@ -4,15 +4,21 @@
   <meta charset="utf-8">
 </head>
 <body style="height: 100%; margin: 0">
-  <div id="container" style="height: 70%"></div>
-  <div id="container2" style="height: 30%"></div>
-  <select id="map-select">
-    <option value="EXP">Exportações</option>
-    <option value="IMP">Importações</option>
-    <option value="BAL">Balança Comercial (EXP - IMP)</option>
-  </select>
+  <div id="container" style="height: 60%"></div>
+  <div id="container2" style="height: 40%"></div>
+  <div class="floating-controls">
+    <label>
+      <input type="checkbox" checked id="log-checkbox">
+      Escala log
+    </label>
+    <select id="map-select">
+      <option value="EXP">Exportações</option>
+      <option value="IMP">Importações</option>
+      <option value="BAL">Balança Comercial (EXP - IMP)</option>
+    </select>
+  </div>
 
-  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@6/dist/echarts.min.js"></script>
   <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
 
   <script type="text/javascript">
@@ -34,14 +40,26 @@
       return arr.reduce((a, v) => (v > a ? v : a));
     }
 
+    let useLog = true;
+
+    function toLog(x) {
+      if (!useLog) return x;
+      return isFinite(x) ? Math.log10(Math.abs(x) + 1) * Math.sign(x) : 0;
+    }
+
+    function toLinear(x) {
+      if (!useLog) return x;
+      return (Math.pow(10, Math.abs(x)) - 1) * Math.sign(x);
+    }
+
     const BILLION = 1_000_000_000;
     const MILLION = 1_000_000;
 
     function formatDollar(x) {
       if (isNaN(x)) {
-        return 'Unknown';
+        return '<i>Unknown</i>';
       }
-      if (x < 0.5) {
+      if (Math.abs(x) < 1.0) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(x * 1_000) + " mi";
       } else {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD' }).format(x) + " bi";
@@ -72,7 +90,7 @@
     }
 
     function loadMapType(type, year) {
-      const arr = dados[type][year].map(x => ({ name: normName(x.name), value: x.us_value / BILLION }));
+      const arr = dados[type][year].map(x => ({ name: normName(x.name), value: toLog(x.us_value / BILLION) }));
       let min = arrMin(arr.map(x => x.value));
       let max = arrMax(arr.map(x => x.value));
 
@@ -112,7 +130,11 @@
             "#d2674d",
             "#b00000",
           ].reverse();
-          min = -max;
+          // faz com que os valores sejam simetricos
+          // em relação a 0, ou seja, branco sempre é 0
+          let x = Math.max(max, -min);
+          max = x;
+          min = -x;
         } break;
       }
 
@@ -120,6 +142,7 @@
         title: {
           text: title,
           subtext: 'Dados do Monitor do Comércio Exterior Brasileiro',
+          sublink: 'https://balanca.economia.gov.br/balanca/IPQ/index.html',
           left: 'center',
           top: 10,
         },
@@ -128,7 +151,7 @@
           showDelay: 0,
           transitionDuration: 0.2,
           formatter: (params) => {
-            return `${params.name}<br/><b>${formatDollar(params.data.value)}</b>`;
+            return `${params.name}<br/><b>${formatDollar(toLinear(params.data.value))}</b>`;
           }
         },
         visualMap: {
@@ -143,6 +166,8 @@
           type: 'continuous',
           precision: 1,
           itemHeight: 300,
+          formatter: (x) => toLinear(x).toFixed(1),
+          text: ['Volume negociado\n com o país\n(Bilhões de US$)', ''],
         },
         series: [
           {
@@ -155,13 +180,20 @@
               }
             },
             aspectScale: 0.9,
-            data: arr
+            // center: [0.0, "55%"],
+            // zoom: 1.1,
+            data: arr,
+            top: 'middle',
+            itemStyle: {
+              borderColor: "rgba(0, 0, 0, 0.5)"
+            },
+            roam: true,
           }
-        ]
+        ],
       };
       mapChart.setOption(option);
     }
-    function loadLineMap() {
+    function loadLineMap(type, year) {
       const years = Object.keys(dados.BAL);
       function totalYear(data) {
         return data.reduce((acc, x) => acc + x.us_value, 0);
@@ -171,11 +203,23 @@
       const balanca = Object.values(dados.BAL).map(y => totalYear(y) / BILLION);
 
       let option = {
+        title: {
+          text: 'Total por ano',
+          left: 'center',
+        },
         tooltip: {
-          trigger: 'axis'
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow',
+            shadowStyle: {
+              color: 'rgba(150, 150, 200, 0.1)'
+            }
+          },
+          valueFormatter: (value) => formatDollar(value),
         },
         legend: {
-          data: ['Exportações', 'Importações', 'Balança Comercial']
+          data: ['Exportações', 'Importações', 'Balança Comercial'],
+          top: '38'
         },
         xAxis: {
           type: 'category',
@@ -186,53 +230,127 @@
           type: 'value',
           name: 'Bilhões de US$'
         },
+        dataZoom: [
+          {
+            type: 'inside',
+          },
+          {}
+        ],
+        color: ['#1b7b16', '#bd2618', '#346888'],
         series: [
           {
             name: 'Exportações',
             type: 'line',
             data: exportacoes,
+            emphasis: { focus: 'series' },
+            markLine: {
+              z: 2,
+              silent: true,
+              animation: false,
+              symbol: 'none',
+              lineStyle: {
+                color: '#fac637',
+              },
+              label: {
+                show: false,
+              },
+              data: [
+                { xAxis: years.indexOf(year) }
+              ]
+            }
           },
           {
             name: 'Importações',
             type: 'line',
             data: importacoes,
+            emphasis: { focus: 'series' },
           },
           {
             name: 'Balança Comercial',
             type: 'line',
             data: balanca,
+            emphasis: { focus: 'series' },
           },
         ]
       };
       lineChart.setOption(option);
     }
-    document.getElementById('map-select').value = "EXP";
+
+    let mapType = 'EXP';
+    let currentYear = 2025;
+
+    document.getElementById('map-select').value = mapType;
     loadData().then(() => {
-      loadMapType('EXP', 2025);
-      loadLineMap();
+      loadMapType(mapType, currentYear);
+      loadLineMap(mapType, currentYear);
+      lineChart.dispatchAction({
+        type: 'highlight',
+        seriesIndex: 0
+      });
     });
 
     window.addEventListener('resize', mapChart.resize);
     window.addEventListener('resize', lineChart.resize);
     document.getElementById('map-select').addEventListener('change', e => {
-      if (dados)
-        loadMapType(e.target.value, 2025);
+      mapType = e.target.value;
+      if (dados) {
+        loadMapType(mapType, currentYear);
+        lineChart.dispatchAction({
+          type: 'highlight',
+          seriesIndex: e.target.selectedIndex,
+        });
+      }
     });
+    document.getElementById('log-checkbox').addEventListener('change', e => {
+      useLog = e.target.checked;
+      loadMapType(mapType, currentYear);
+    })
+
+    lineChart.on('updateAxisPointer', function (event) {
+      const xAxisInfo = event.axesInfo[0];
+      if (xAxisInfo) {
+        const years = Object.keys(dados.BAL);
+        const year = years[xAxisInfo.value];
+        if (year !== currentYear) {
+          currentYear = year;
+          loadMapType(mapType, year);
+          loadLineMap(mapType, currentYear);
+        }
+      }
+    });
+
   </script>
 
   <style>
-    #map-select {
+    .floating-controls {
       position: absolute;
       top: 0;
       right: 0;
       margin: 5px;
-      padding: 5px;
-      cursor: pointer;
-      transition: box-shadow 100ms;
-      border-radius: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: sans-serif;
+      font-size: 13.3px;
 
-      &:hover {
-        box-shadow: 2px 2px 5px rgba(0 0 0 / 0.2);
+      label {
+        display: flex;
+        align-items: center;
+        user-select: none;
+      }
+
+      #map-select {
+        padding: 5px;
+        cursor: pointer;
+        transition: box-shadow 100ms;
+        border-radius: 0;
+
+        &:hover {
+          box-shadow: 2px 2px 5px rgba(0 0 0 / 0.2);
+        }
+        &:focus-visible {
+          outline: 1px solid;
+        }
       }
     }
   </style>
