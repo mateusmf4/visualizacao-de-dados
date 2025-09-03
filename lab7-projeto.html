@@ -32,6 +32,8 @@
     });
     let app = {};
 
+    const allCountries = echarts.getMap('world').geoJSON.features.map(x => x.properties.name);
+
     function arrMin(arr) {
       return arr.reduce((a, v) => (v < a ? v : a));
     }
@@ -67,18 +69,40 @@
     }
 
     function normName(name) {
-      switch (name) {
-        case "Democratic Republic Of The Congo": return "Dem. Rep. Congo";
-        case "Central African Republic": return "Central African Rep.";
-        case "Dominican Republic": return "Dominican Rep.";
-        case "Western Sahara": return "W. Sahara";
-        case "Ivory Coast": return "Côte d'Ivoire";
-        case "South Sudan": return "S. Sudan";
-        case "South Korea": return "Korea";
-        case "North Korea": return "Dem. Rep. Korea";
-        case "Eswatini": return "Swaziland";
-        default: return name;
-      }
+      const rename = {
+        "Democratic Republic Of The Congo": "Dem. Rep. Congo",
+        "Central African Republic": "Central African Rep.",
+        "Dominican Republic": "Dominican Rep.",
+        "Western Sahara": "W. Sahara",
+        "Ivory Coast": "Côte d'Ivoire",
+        "South Sudan": "S. Sudan",
+        "South Korea": "Korea",
+        "North Korea": "Dem. Rep. Korea",
+        "Eswatini": "Swaziland",
+        "Czech Republic": "Czech Rep.",
+        "Bosnia And Herzegovina": "Bosnia and Herz.",
+        "North Macedonia": "Macedonia",
+        "Laos": "Lao PDR",
+        "Equatorial Guinea": "Eq. Guinea",
+        "Sao Tome And Principe": "São Tomé and Principe",
+        "Falkland Islands (Malvinas)": "Falkland Is.",
+        "South Georgia And The South Sandwich Islands": "S. Geo. and S. Sandw. Is.",
+        "Heard Island And Mcdonald Islands": "Heard I. and McDonald Is.",
+        "Djibuti": "Djibouti",
+        "Solomon Islands": "Solomon Is.",
+        "Faroe Islands": "Faeroe Is.",
+        "Trinidad And Tobago": "Trinidad and Tobago",
+        "U.S. Virgin Islands": "U.S. Virgin Is.",
+        "French Polynesia": "Fr. Polynesia",
+        "Cayman Islands": "Cayman Is.",
+        "Turks And Caicos Islands": "Turks and Caicos Is.",
+        "Antigua And Barbuda": "Antigua and Barb.",
+        "Saint Vincent And The Grenadines": "St. Vincent and Gren.",
+        "Northern Mariana Islands": "N. Mariana Is.",
+        "French Southern Territories": "Fr. S. Antarctic Lands",
+        "Isle Of Man": "Isle of Man",
+      };
+      return rename[name] ?? name;
     }
 
     let dados;
@@ -89,10 +113,26 @@
       mapChart.hideLoading();
     }
 
+    const missingColor = "#96aed6";
+
     function loadMapType(type, year) {
       const arr = dados[type][year].map(x => ({ name: normName(x.name), value: toLog(x.us_value / BILLION) }));
       let min = arrMin(arr.map(x => x.value));
       let max = arrMax(arr.map(x => x.value));
+
+      const knownCountries = new Set(arr.map(x => x.name));
+      const missing = allCountries.filter(x => !knownCountries.has(x)).map(name => (
+        {
+          name,
+          itemStyle: {
+            color: missingColor,
+            borderType: 'dashed',
+            borderWidth: 1,
+            opacity: 0.6,
+          }
+        }
+      ));
+      arr.push(...missing);
 
       let title;
       let colors;
@@ -146,6 +186,15 @@
           left: 'center',
           top: 10,
         },
+        toolbox: {
+          show: true,
+          left: 'left',
+          top: 'top',
+          feature: {
+            restore: {},
+            saveAsImage: {}
+          }
+        },
         tooltip: {
           trigger: 'item',
           showDelay: 0,
@@ -190,6 +239,35 @@
             roam: true,
           }
         ],
+        graphic:[{
+          type: 'group',
+          right: 59,
+          bottom: 50,
+          children: [
+            {
+              type: 'rect',
+              shape: { width: 20, height: 20 },
+              style: {
+                fill: missingColor,
+                stroke: 'rgba(0, 0, 0, 0.5)',
+                lineDash: 'dashed',
+                lineWidth: 1,
+                opacity: 0.6,
+              }
+            },
+            {
+              type: 'text',
+              top: 4,
+              right: 5,
+              style: {
+                text: 'Sem dados',
+                fontSize: 12,
+                fill: '#444',
+                textAlign: 'right',
+              }
+            }
+          ]
+        }]
       };
       mapChart.setOption(option);
     }
